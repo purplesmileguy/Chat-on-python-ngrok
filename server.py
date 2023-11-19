@@ -28,11 +28,11 @@ def handle_client(client_socket, clients, addresses):
             message = data.decode('utf-8')
             sender_address = addresses[clients.index(client_socket)]
 
-            # Проверка флага для вывода сообщения о присоединении
+            # проверка флага для вывода сообщения о присоединении
             if first_message:
                 first_message = False
             else:
-                # Проверка, содержится ли никнейм в сообщении
+                # Проверка есть ли никнейм в сообщении
                 if username not in message:
                     print(f"{Fore.GREEN}Получено сообщение от {sender_address}: {username}: {message}")
                 else:
@@ -83,7 +83,7 @@ def main():
     clients = []
     addresses = []
 
-    # Запуск потока для обработки входящих сообщений с сервера
+    # Запуск обработки входящих сообщений с сервера
     server_message_thread = threading.Thread(target=send_server_messages, args=(clients,))
     server_message_thread.start()
 
@@ -91,11 +91,11 @@ def main():
         client_socket, client_address = server_socket.accept()
         print(f"{Fore.GREEN}{client_address} присоединился.")
 
-        # Добавление клиента в список
+        # добавление клиента в список
         clients.append(client_socket)
         addresses.append(client_address)
 
-        # Запуск потока для обработки клиента
+        # Запуск обработки клиента
         client_thread = threading.Thread(target=handle_client, args=(client_socket, clients, addresses))
         client_thread.start()
 
