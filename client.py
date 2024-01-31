@@ -1,49 +1,63 @@
 import socket
 import threading
+from colorama import Fore, Style, init
+from colorama import just_fix_windows_console
+import time
+import os
 
-def receive_messages(client_socket, username):
+init()
+just_fix_windows_console()
+
+print_lock = threading.Lock()
+
+def receive_messages(client_socket):
     while True:
         try:
-            data = client_socket.recv(1024)
-            if not data:
-                break
+            response = client_socket.recv(1024)
+            if not response:
+                print("")
 
-            message = data.decode('utf-8')
-            print(message)
+            with print_lock:
+                print("")
+                print(response.decode('utf-8'))
         except Exception as e:
-            print(f"Ошибка при получении сообщения: {e}")
-            break
+            print("")
+            print(f"{Fore.RED}Ошибка получения сообщения: {e}{Style.RESET_ALL}")
+            print(f"{Fore.RED}Соединение разорвано.{Style.RESET_ALL}")
+            print("")
 
-def send_messages(client_socket, username):
-    while True:
-        try:
-            print("", end="")  # Пустой print для перехода к новой строке
-            message = input()
-            client_socket.send(f"{username}: {message}".encode('utf-8'))
-        except Exception as e:
-            print(f"Ошибка при отправке сообщения: {e}")
-            break
+# ... (ваш текущий код)
 
-def main():
-    host, port = input("Введите хост и порт для подключения (host:port): ").split(':')
-    port = int(port)
-
-    username = input("Введите ваш ник: ")
-
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-
+def run_client():
     try:
-        client_socket.send(username.encode('utf-8'))
-    except Exception as e:
-        print(f"Ошибка при отправке ника: {e}")
-        return
+        server_ip = input(f"{Fore.CYAN}Айпи и порт сервера (Типо localhost:5555 или нгрок): ")
+        server_ip, server_port = server_ip.split(':')
+        server_port = int(server_port)
 
-    receive_thread = threading.Thread(target=receive_messages, args=(client_socket, username))
-    send_thread = threading.Thread(target=send_messages, args=(client_socket, username))
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect((server_ip, server_port))
 
-    receive_thread.start()
-    send_thread.start()
+        nickname = input(f"{Fore.CYAN}Введи ник: ")
+        color_choice = input(f"{Fore.GREEN}Выберите цвет для ника {Fore.RED}red, {Fore.GREEN}green, {Fore.YELLOW}yellow, {Fore.BLUE}blue, {Fore.MAGENTA}magenta, {Fore.CYAN}cyan, {Fore.WHITE}white {Fore.GREEN}: ")
+        color_code = getattr(Fore, color_choice.upper(), Fore.WHITE)
+        formatted_nickname = f"{color_code}{nickname}{Style.RESET_ALL}"
+
+        # Отправляем серверу ник и код цвета
+        client.send(f"{formatted_nickname}:{color_choice}".encode('utf-8'))
+
+        print(f"{Fore.CYAN}Ты зашел к {server_ip}:{server_port} как {formatted_nickname}{Style.RESET_ALL}")
+
+        threading.Thread(target=receive_messages, args=(client,)).start()
+
+        while True:
+            message = input(f"{formatted_nickname}:{Fore.WHITE} ")
+            # Отправляем серверу сообщение и код цвета
+            client.send(f"{message}:{color_choice}".encode('utf-8'))
+
+    except ValueError:
+        print(f"{Style.BRIGHT}{Fore.RED}Ошибка ввода. Пожалуйста, введите правильный формат (например, localhost:5555){Style.RESET_ALL}")
 
 if __name__ == "__main__":
-    main()
+    run_client()
+
+
